@@ -157,3 +157,90 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
 });
+
+/* ========================================
+   RSS NEWS FEED
+   ======================================== */
+
+var METAL_RSS_FEEDS = [
+  { url: 'https://3dprint.com/feed/', title: '3D Printing Industry News' },
+  { url: 'https://3dprintingindustry.com/feed/', title: '3D Printing Industry' },
+  { url: 'https://3dnatives.com/en/feed/', title: '3D Natives' },
+  { url: 'https://newatlas.com/index.rss', title: 'New Atlas' }
+];
+
+function stripHtmlTags(html) {
+  var tmp = document.createElement('DIV');
+  tmp.innerHTML = html;
+  return tmp.textContent || tmp.innerText || '';
+}
+
+function fetchMetalRSSFeed(feedUrl) {
+  return new Promise(function(resolve) {
+    var controller = new AbortController();
+    var timeoutId = setTimeout(function() { controller.abort(); resolve([]); }, 6000);
+    var corsUrl = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(feedUrl);
+    fetch(corsUrl, { signal: controller.signal })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        clearTimeout(timeoutId);
+        if (data.items) {
+          resolve(data.items.slice(0, 2).map(function(item) {
+            return {
+              title: item.title,
+              link: item.link,
+              pubDate: new Date(item.pubDate).toLocaleDateString(),
+              description: item.description ? stripHtmlTags(item.description).substring(0, 150) + '...' : '',
+              thumbnail: item.thumbnail || (item.enclosure && item.enclosure.link) || null
+            };
+          }));
+        } else { resolve([]); }
+      })
+      .catch(function() { clearTimeout(timeoutId); resolve([]); });
+  });
+}
+
+var METAL_NEWS_FALLBACKS = [
+  'images/03-laser-sintering-sparks.png',
+  'images/10-dmls-machine-interior.png',
+  'images/16-slm-recoater-blade.png',
+  'images/14-ded-machine-sparks.png',
+  'images/12-build-plate-removal.png',
+  'images/18-powder-handling.png'
+];
+
+function loadMetalNewsFeed() {
+  var container = document.getElementById('news-feed');
+  if (!container) return;
+  container.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:#888;padding:2rem;">Loading latest industry news...</p>';
+
+  var promises = METAL_RSS_FEEDS.map(function(feed) {
+    return fetchMetalRSSFeed(feed.url);
+  });
+
+  Promise.all(promises).then(function(results) {
+    var allArticles = [];
+    results.forEach(function(articles) { allArticles = allArticles.concat(articles); });
+    var filtered = allArticles.filter(function(a) { return a.title && a.link; }).slice(0, 6);
+
+    if (filtered.length === 0) {
+      container.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:#888;">Unable to load news at this time.</p>';
+      return;
+    }
+
+    container.innerHTML = filtered.map(function(article, idx) {
+      var fallback = METAL_NEWS_FALLBACKS[idx % METAL_NEWS_FALLBACKS.length];
+      var imgSrc = article.thumbnail || fallback;
+      return '<div class="news-item">' +
+        '<div class="news-image"><img src="' + imgSrc + '" alt="Industry News" loading="lazy" onerror="this.src='' + fallback + ''"></div>' +
+        '<div class="news-content">' +
+        '<div class="news-date">' + article.pubDate + '</div>' +
+        '<h4>' + article.title + '</h4>' +
+        '<p>' + article.description + '</p>' +
+        '<a href="' + article.link + '" target="_blank" rel="noopener noreferrer" class="news-link">Read More →</a>' +
+        '</div></div>';
+    }).join('');
+  });
+}
+
+document.addEventListener('DOMContentLoaded', loadMetalNewsFeed);
