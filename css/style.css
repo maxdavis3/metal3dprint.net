@@ -709,3 +709,16 @@ section { padding:8rem 0; }
   border: 1px solid rgba(231, 76, 60, 0.4);
   color: #e74c3c;
 }
+
+/* ===== SITE THEME: Rose Fusion ===== */
+:root {
+    --primary: #fb7185;
+    --primary-dark: #f43f5e;
+    --accent: #f472b6;
+    --bg-dark: #150510;
+    --bg-darker: #0d030b;
+    --bg-card: #200815;
+    --font-heading: 'Bai Jamjuree', sans-serif;
+    --font-body: 'Inter', sans-serif;
+}
+.site-header { background: rgba(21,5,16,0.85); }
