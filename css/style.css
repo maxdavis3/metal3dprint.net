@@ -687,3 +687,25 @@ section { padding:8rem 0; }
 .news-link:hover {
   color: #fff;
 }
+
+/* Form feedback messages */
+.form-message {
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  display: none;
+}
+.form-message:not(:empty) {
+  display: block;
+}
+.form-message.success {
+  background: rgba(39, 174, 96, 0.15);
+  border: 1px solid rgba(39, 174, 96, 0.4);
+  color: #27ae60;
+}
+.form-message.error {
+  background: rgba(231, 76, 60, 0.15);
+  border: 1px solid rgba(231, 76, 60, 0.4);
+  color: #e74c3c;
+}

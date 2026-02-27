@@ -229,18 +229,96 @@ function loadMetalNewsFeed() {
     }
 
     container.innerHTML = filtered.map(function(article, idx) {
-      var fallback = METAL_NEWS_FALLBACKS[idx % METAL_NEWS_FALLBACKS.length];
-      var imgSrc = article.thumbnail || fallback;
-      return '<div class="news-item">' +
-        '<div class="news-image"><img src="' + imgSrc + '" alt="Industry News" loading="lazy" onerror="this.src='' + fallback + ''"></div>' +
-        '<div class="news-content">' +
-        '<div class="news-date">' + article.pubDate + '</div>' +
-        '<h4>' + article.title + '</h4>' +
-        '<p>' + article.description + '</p>' +
-        '<a href="' + article.link + '" target="_blank" rel="noopener noreferrer" class="news-link">Read More →</a>' +
-        '</div></div>';
+      var fallbackImg = METAL_NEWS_FALLBACKS[idx % METAL_NEWS_FALLBACKS.length];
+      var imgSrc = article.thumbnail || fallbackImg;
+      return [
+        '<div class="news-item">',
+        '<div class="news-image">',
+        '<img src="' + imgSrc + '" data-fallback="' + fallbackImg + '" alt="Industry News" loading="lazy"',
+        ' onerror="this.onerror=null;this.src=this.dataset.fallback">',
+        '</div>',
+        '<div class="news-content">',
+        '<div class="news-date">' + article.pubDate + '</div>',
+        '<h4>' + article.title + '</h4>',
+        '<p>' + article.description + '</p>',
+        '<a href="' + article.link + '" target="_blank" rel="noopener noreferrer" class="news-link">Read More \u2192</a>',
+        '</div>',
+        '</div>'
+      ].join('');
     }).join('');
   });
 }
 
 document.addEventListener('DOMContentLoaded', loadMetalNewsFeed);
+
+
+/* ========================================
+   WEB3FORMS CONTACT FORM
+   ======================================== */
+
+document.addEventListener('DOMContentLoaded', function() {
+  var contactForms = document.querySelectorAll('#rfqForm, #contact-form');
+  contactForms.forEach(function(form) {
+    // Ensure there's a message element
+    var msgEl = form.querySelector('.form-message');
+    if (!msgEl) {
+      msgEl = document.createElement('div');
+      msgEl.className = 'form-message';
+      form.insertBefore(msgEl, form.firstChild);
+    }
+
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      msgEl.textContent = '';
+      msgEl.className = 'form-message';
+
+      // Basic validation
+      var nameEl = form.querySelector('[name="name"]');
+      var emailEl = form.querySelector('[name="email"]');
+      var messageEl = form.querySelector('[name="message"]');
+      var errors = [];
+      if (nameEl && !nameEl.value.trim()) errors.push('Please enter your name.');
+      if (emailEl) {
+        if (!emailEl.value.trim()) {
+          errors.push('Please enter your email.');
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailEl.value.trim())) {
+          errors.push('Please enter a valid email address.');
+        }
+      }
+      if (messageEl && !messageEl.value.trim()) errors.push('Please enter a message.');
+
+      if (errors.length > 0) {
+        msgEl.className = 'form-message error';
+        msgEl.innerHTML = errors.join('<br>');
+        return;
+      }
+
+      var submitBtn = form.querySelector('[type="submit"]');
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending...'; }
+
+      var formData = new FormData(form);
+      if (!formData.get('access_key')) {
+        formData.append('access_key', '6f33053b-6d08-414b-9615-665f88c98da8');
+      }
+
+      fetch('https://api.web3forms.com/submit', { method: 'POST', body: formData })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Send Message'; }
+          if (data.success) {
+            msgEl.className = 'form-message success';
+            msgEl.textContent = 'Thank you! Your message has been sent. We will respond within 24 hours.';
+            form.reset();
+          } else {
+            msgEl.className = 'form-message error';
+            msgEl.textContent = 'Error sending message: ' + (data.message || 'Please try again.');
+          }
+        })
+        .catch(function() {
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Send Message'; }
+          msgEl.className = 'form-message error';
+          msgEl.textContent = 'Network error. Please check your connection and try again.';
+        });
+    });
+  });
+});
